@@ -71,6 +71,17 @@ public class CourierCreateTest extends BaseTest {
                 .body("message", containsString("Этот логин уже используется"));
     }
 
+    @Test
+    public void cannotCreateCourierWithoutLogin() {
+        Courier courierWithoutLogin =
+                new Courier(null, "password123", "Name");
+
+        createCourier(courierWithoutLogin)
+                .then()
+                .statusCode(400)
+                .body("message", equalTo("Недостаточно данных для создания учетной записи"));
+    }
+
     @After
     public void cleanUp() {
         if (courier != null) {
