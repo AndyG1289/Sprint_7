@@ -3,25 +3,27 @@ package ru.yandex.praktikum;
 import io.qameta.allure.Step;
 import io.restassured.response.Response;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+
 import java.util.HashMap;
 import java.util.Map;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 public class CourierLoginTest extends BaseTest {
 
     private Courier courier;
 
-    @Test
-    public void courierCanLogin() {
+    @Before
+    public void setUp() {
         courier = CourierGenerator.randomCourier();
         createCourier(courier);
+    }
 
+    @Test
+    public void courierCanLogin() {
         CourierCredentials credentials =
                 CourierGenerator.credentialsFrom(courier);
 
@@ -32,11 +34,22 @@ public class CourierLoginTest extends BaseTest {
     }
 
     @Test
-    public void errorIfLoginOrPasswordIsWrong() {
-        CourierCredentials wrongCredentials =
-                new CourierCredentials("wrongLogin", "wrongPassword");
+    public void errorIfLoginIsWrong() {
+        CourierCredentials credentials =
+                new CourierCredentials("wrongLogin", courier.getPassword());
 
-        loginCourier(wrongCredentials)
+        loginCourier(credentials)
+                .then()
+                .statusCode(404)
+                .body("message", equalTo("Учетная запись не найдена"));
+    }
+
+    @Test
+    public void errorIfPasswordIsWrong() {
+        CourierCredentials credentials =
+                new CourierCredentials(courier.getLogin(), "wrongPassword");
+
+        loginCourier(credentials)
                 .then()
                 .statusCode(404)
                 .body("message", equalTo("Учетная запись не найдена"));
@@ -44,12 +57,24 @@ public class CourierLoginTest extends BaseTest {
 
     @Test
     public void errorIfPasswordIsMissing() {
-        courier = CourierGenerator.randomCourier();
-        createCourier(courier);
-
         Map<String, String> body = new HashMap<>();
         body.put("login", courier.getLogin());
-        // password НЕ кладём
+        // password отсутствует
+
+        given()
+                .header("Content-type", "application/json")
+                .body(body)
+                .when()
+                .post("/api/v1/courier/login")
+                .then()
+                .statusCode(anyOf(is(400), is(504)));
+    }
+
+    @Test
+    public void errorIfLoginIsMissing() {
+        Map<String, String> body = new HashMap<>();
+        body.put("password", courier.getPassword());
+        // login отсутствует
 
         given()
                 .header("Content-type", "application/json")
