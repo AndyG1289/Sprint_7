@@ -57,30 +57,20 @@ public class CourierLoginTest extends BaseTest {
 
     @Test
     public void errorIfPasswordIsMissing() {
-        Map<String, String> body = new HashMap<>();
-        body.put("login", courier.getLogin());
-        // password отсутствует
+        CourierCredentials credentials =
+                new CourierCredentials(courier.getLogin(), null);
 
-        given()
-                .header("Content-type", "application/json")
-                .body(body)
-                .when()
-                .post("/api/v1/courier/login")
+        loginCourierWithBody(credentials)
                 .then()
                 .statusCode(anyOf(is(400), is(504)));
     }
 
     @Test
     public void errorIfLoginIsMissing() {
-        Map<String, String> body = new HashMap<>();
-        body.put("password", courier.getPassword());
-        // login отсутствует
+        CourierCredentials credentials =
+                new CourierCredentials(null, courier.getPassword());
 
-        given()
-                .header("Content-type", "application/json")
-                .body(body)
-                .when()
-                .post("/api/v1/courier/login")
+        loginCourierWithBody(credentials)
                 .then()
                 .statusCode(anyOf(is(400), is(504)));
     }
@@ -139,5 +129,14 @@ public class CourierLoginTest extends BaseTest {
                     .when()
                     .delete("/api/v1/courier/{id}", id);
         }
+    }
+
+    @Step("Логин курьера с произвольными данными")
+    private Response loginCourierWithBody(Object body) {
+        return given()
+                .header("Content-type", "application/json")
+                .body(body)
+                .when()
+                .post("/api/v1/courier/login");
     }
 }
